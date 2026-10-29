@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Chrono Grid: Aether Protocol</title>
+  <style>
+    :root {
+      --bg-dark: #0a0d14;
+      --panel-bg: #121929;
+      --panel-border: #1e293b;
+      --accent-cyan: #00f0ff;
+      --accent-gold: #fbbf24;
+      --accent-danger: #f43f5e;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 15%, rgba(0, 240, 255, 0.06), transparent 50%),
+        radial-gradient(circle at 80% 85%, rgba(168, 85, 247, 0.06), transparent 45%);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      max-width: 1050px;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 10px;
+      position: relative;
+    }
+
+    /* Top HUD */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      margin-bottom: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      z-index: 10;
+    }
+
+    .header-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+    }
+
+    .stats-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #0f172a;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .stat-badge span.value {
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+
+    .stat-badge.moves span.value {
+      color: var(--accent-gold);
+    }
+
+    .stat-badge.moves.low span.value {
+      color: var(--accent-danger);
+    }
+
+    .btn-action-icon {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s;
+    }
+
+    .btn-action-icon:hover {
+      background: rgba(244, 63, 94, 0.3);
+      border-color: var(--accent-danger);
+    }
+
+    /* Main Area */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-height: 0;
+    }
+
+    #canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      background: #090d16;
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .control-hint {
+      margin-top: 4px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .control-hint b {
+      color: var(--accent-cyan);
+    }
+
+    /* Bottom Controls */
+    footer {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      padding-top: 6px;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+
+    /* Skills Bar */
+    .skills-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-skill {
+      position: relative;
+      background: #1e293b;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      min-width: 64px;
+      transition: border-color 0.15s, background 0.15s;
+      touch-action: manipulation;
+    }
+
+    .btn-skill:hover:not(:disabled) {
+      border-color: var(--accent-cyan);
+      background: #273549;
+    }
+
+    .btn-skill:active:not(:disabled) {
+      background: var(--accent-cyan);
+      color: #000;
+    }
+
+    .btn-skill:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      border-color: #334155;
+    }
+
+    .skill-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--accent-purple);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-dark);
+    }
+
+    .skill-hotkey {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+    }
+
+    /* Virtual D-pad (Instant responsive buttons) */
+    .dpad-container {
+      display: grid;
+      grid-template-columns: repeat(3, 40px);
+      grid-template-rows: repeat(3, 40px);
+      gap: 3px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dpad-btn {
+      background: #1e293b;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      color: var(--text-main);
+      border-radius: 8px;
+      font-size: 1.05rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.08s;
+    }
+
+    .dpad-btn:hover {
+      border-color: var(--accent-cyan);
+    }
+
+    .dpad-btn:active {
+      background: var(--accent-cyan);
+      color: #000;
+    }
+
+    /* Modal dialogs */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 9, 15, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #121929;
+      border: 1px solid var(--accent-cyan);
+      border-radius: 16px;
+      padding: 22px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .modal-title.win { color: var(--accent-cyan); }
+    .modal-title.lose { color: var(--accent-danger); }
+
+    .modal-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      line-height: 1.4;
+    }
+
+    .modal-btn {
+      background: var(--accent-cyan);
+      color: #050b14;
+      font-weight: 700;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+      transition: filter 0.15s;
+    }
+
+    .modal-btn:hover {
+      filter: brightness(1.15);
+    }
+
+    .modal-btn.secondary {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    /* Toast message */
+    #toast-msg {
+      position: absolute;
+      top: 14px;
+      background: #0f172a;
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--accent-cyan);
+      font-size: 0.82rem;
+      font-weight: 600;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 50;
+    }
+
+    #toast-msg.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 600px) {
+      #game-container { padding: 4px; }
+      header { padding: 6px 10px; }
+      .header-title { font-size: 0.82rem; }
+      .stat-badge { font-size: 0.72rem; padding: 2px 6px; }
+      footer {
+        gap: 8px;
+        flex-direction: column;
+      }
+      .skills-bar {
+        width: 100%;
+        justify-content: center;
+      }
+      .btn-skill {
+        flex: 1;
+        min-width: 60px;
+        padding: 5px 6px;
+        font-size: 0.75rem;
+      }
+      .dpad-container {
+        grid-template-columns: repeat(3, 44px);
+        grid-template-rows: repeat(3, 44px);
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="toast-msg">Thông báo</div>
+
+  <header>
+    <div class="header-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+      <span id="level-title">Màn 1: Khởi động</span>
+    </div>
+    <div class="stats-group">
+      <div class="stat-badge moves" id="moves-badge">
+        <span>Bước:</span>
+        <span class="value" id="moves-val">16</span>
+      </div>
+      <div class="stat-badge" id="cores-badge">
+        <span>Lõi:</span>
+        <span class="value" id="cores-val">0/2</span>
+      </div>
+      <button class="btn-action-icon" id="btn-restart" title="Chơi lại (Phím R)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        <span>Lại</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div id="canvas-wrapper">
+      <canvas id="game-canvas" tabindex="0"></canvas>
+      <div class="control-hint">
+        🎮 <b>Mũi tên / WASD</b> &bull; Click chuột vào ô xung quanh &bull; Bấm <b>D-Pad</b> bên dưới
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="skills-bar">
+      <button class="btn-skill" id="btn-break" title="Phá hủy 1 khối đá cản đường phía trước">
+        <span class="skill-badge" id="break-badge">1</span>
+        <span>💥 Phá hủy</span>
+        <span class="skill-hotkey">Phím 1</span>
+      </button>
+
+      <button class="btn-skill" id="btn-jump" title="Nhảy vượt qua 1 ô bẫy hoặc vật cản">
+        <span class="skill-badge" id="jump-badge">2</span>
+        <span>⚡ Nhảy vọt</span>
+        <span class="skill-hotkey">Phím 2</span>
+      </button>
+
+      <button class="btn-skill" id="btn-undo" title="Quay lui trạng thái 1 bước">
+        <span class="skill-badge" id="undo-badge">3</span>
+        <span>⏪ Quay lui</span>
+        <span class="skill-hotkey">Phím 3 / Z</span>
+      </button>
+    </div>
+
+    <!-- Virtual D-pad -->
+    <div class="dpad-container">
+      <div></div>
+      <button class="dpad-btn" id="dpad-up" title="Lên">▲</button>
+      <div></div>
+      <button class="dpad-btn" id="dpad-left" title="Trái">◀</button>
+      <button class="dpad-btn" id="dpad-down" title="Xuống">▼</button>
+      <button class="dpad-btn" id="dpad-right" title="Phải">▶</button>
+    </div>
+  </footer>
+</div>
+
+<!-- Modal Popup -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-card">
+    <h2 class="modal-title" id="modal-title">CHIẾN THẮNG!</h2>
+    <p class="modal-desc" id="modal-desc">Bạn đã thu thập đủ lõi năng lượng và tới cổng an toàn.</p>
+    <button class="modal-btn" id="modal-primary-btn">Tiếp tục</button>
+    <button class="modal-btn secondary" id="modal-secondary-btn">Chơi lại</button>
+  </div>
+</div>
+
+<script>
+/**
+ * CHRONO GRID: AETHER PROTOCOL
+ * High-Performance Smooth Engine (60/120 FPS)
+ */
+class SoundSystem {
+  constructor() {
+    this.ctx = null;
+    this.isReady = false;
+  }
+  init() {
+    if (this.isReady && this.ctx) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        this.isReady = true;
+      }
+    } catch(e) {}
+  }
+  playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.06) {
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const now = this.ctx.currentTime;
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(gainVal, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch(e) {}
+  }
+  step() { this.playTone(340, 'sine', 0.04, 0.04); }
+  push() { this.playTone(180, 'triangle', 0.08, 0.06); }
+  collect() {
+    this.playTone(660, 'sine', 0.06, 0.08);
+    setTimeout(() => this.playTone(990, 'triangle', 0.1, 0.08), 50);
+  }
+  breakRock() {
+    this.playTone(140, 'square', 0.12, 0.09);
+    setTimeout(() => this.playTone(90, 'sawtooth', 0.15, 0.09), 30);
+  }
+  jump() {
+    if (!this.ctx) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const now = this.ctx.currentTime;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(750, now + 0.14);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch(e) {}
+  }
+  undo() { this.playTone(450, 'sine', 0.06, 0.06); }
+  win() {
+    const notes = [523, 659, 784, 1046];
+    notes.forEach((freq, idx) => {
+      setTimeout(() => this.playTone(freq, 'triangle', 0.18, 0.12), idx * 90);
+    });
+  }
+  lose() {
+    this.playTone(220, 'sawtooth', 0.15, 0.12);
+    setTimeout(() => this.playTone(140, 'sawtooth', 0.25, 0.14), 100);
+  }
+}
+
+const sounds = new SoundSystem();
+
+const TILE = {
+  EMPTY: 0,
+  WALL: 1,
+  TRAP: 2,
+  CORE: 3,
+  PORTAL: 4,
+  BLOCK: 5,
+  DISARMED_TRAP: 6
+};
+
+const LEVELS = [
+  {
+    name: "Màn 1: Khởi Động Lưới",
+    width: 7,
+    height: 7,
+    moves: 16,
+    skills: { break: 1, jump: 2, undo: 3 },
+    player: { x: 1, y: 5, dir: 'up' },
+    map: [
+      [1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 4, 1],
+      [1, 0, 1, 1, 0, 0, 1],
+      [1, 0, 0, 3, 5, 3, 1],
+      [1, 0, 1, 0, 0, 0, 1],
+      [1, 0, 0, 0, 1, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1]
+    ]
+  },
+  {
+    name: "Màn 2: Rãnh Bẫy & Lượng Tử",
+    width: 8,
+    height: 8,
+    moves: 18,
+    skills: { break: 1, jump: 2, undo: 3 },
+    player: { x: 1, y: 6, dir: 'up' },
+    map: [
+      [1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 0, 0, 4, 1],
+      [1, 0, 3, 1, 1, 0, 3, 1],
+      [1, 0, 0, 1, 1, 0, 5, 1],
+      [1, 2, 2, 2, 1, 0, 0, 1],
+      [1, 0, 5, 0, 0, 0, 0, 1],
+      [1, 0, 0, 0, 1, 0, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+  },
+  {
+    name: "Màn 3: Mê Cung Nghịch Đảo",
+    width: 9,
+    height: 9,
+    moves: 26,
+    skills: { break: 1, jump: 2, undo: 3 },
+    player: { x: 1, y: 7, dir: 'up' },
+    map: [
+      [1, 1, 1, 1, 1, 1, 1, 1, 1],
+      [1, 0, 0, 0, 1, 0, 0, 4, 1],
+      [1, 0, 3, 0, 1, 0, 2, 0, 1],
+      [1, 1, 1, 0, 1, 0, 1, 1, 1],
+      [1, 0, 0, 0, 2, 0, 0, 0, 1],
+      [1, 0, 5, 1, 1, 1, 5, 0, 1],
+      [1, 0, 0, 0, 0, 0, 0, 3, 1],
+      [1, 0, 1, 2, 1, 0, 1, 0, 1],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+  }
+];
+
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('game-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.wrapper = document.getElementById('canvas-wrapper');
+
+    this.currentLevelIndex = 0;
+    this.state = null;
+    this.history = [];
+    this.particles = [];
+    this.animTime = 0;
+    this.isOver = false;
+    this.toastTimer = null;
+
+    this.initDOM();
+    this.initEvents();
+    this.loadLevel(0);
+    this.resizeCanvas();
+
+    this.canvas.focus();
+
+    this.lastFrame = performance.now();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  initDOM() {
+    this.levelTitleEl = document.getElementById('level-title');
+    this.movesValEl = document.getElementById('moves-val');
+    this.movesBadgeEl = document.getElementById('moves-badge');
+    this.coresValEl = document.getElementById('cores-val');
+
+    this.breakBtn = document.getElementById('btn-break');
+    this.jumpBtn = document.getElementById('btn-jump');
+    this.undoBtn = document.getElementById('btn-undo');
+
+    this.breakBadge = document.getElementById('break-badge');
+    this.jumpBadge = document.getElementById('jump-badge');
+    this.undoBadge = document.getElementById('undo-badge');
+
+    this.modal = document.getElementById('modal');
+    this.modalTitle = document.getElementById('modal-title');
+    this.modalDesc = document.getElementById('modal-desc');
+    this.modalPrimaryBtn = document.getElementById('modal-primary-btn');
+    this.modalSecondaryBtn = document.getElementById('modal-secondary-btn');
+    this.toastEl = document.getElementById('toast-msg');
+  }
+
+  showToast(text, duration = 1200) {
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastEl.textContent = text;
+    this.toastEl.classList.add('show');
+    this.toastTimer = setTimeout(() => {
+      this.toastEl.classList.remove('show');
+    }, duration);
+  }
+
+  loadLevel(index) {
+    this.currentLevelIndex = index;
+    const proto = LEVELS[index];
+
+    const grid = proto.map.map(row => [...row]);
+    
+    let totalCores = 0;
+    for (let r = 0; r < proto.height; r++) {
+      for (let c = 0; c < proto.width; c++) {
+        if (grid[r][c] === TILE.CORE) totalCores++;
+      }
+    }
+
+    this.state = {
+      width: proto.width,
+      height: proto.height,
+      grid: grid,
+      player: {
+        x: proto.player.x,
+        y: proto.player.y,
+        dir: proto.player.dir,
+        visualX: proto.player.x,
+        visualY: proto.player.y
+      },
+      movesLeft: proto.moves,
+      coresCollected: 0,
+      totalCores: totalCores,
+      skills: { ...proto.skills }
+    };
+
+    this.history = [];
+    this.particles = [];
+    this.isOver = false;
+    this.hideModal();
+    this.updateHUD();
+    this.resizeCanvas();
+    this.showToast(proto.name, 1000);
+    this.canvas.focus();
+  }
+
+  saveSnapshot() {
+    const snap = {
+      grid: this.state.grid.map(row => [...row]),
+      player: {
+        x: this.state.player.x,
+        y: this.state.player.y,
+        dir: this.state.player.dir
+      },
+      movesLeft: this.state.movesLeft,
+      coresCollected: this.state.coresCollected
+    };
+    this.history.push(snap);
+    if (this.history.length > 25) this.history.shift();
+  }
+
+  updateHUD() {
+    const proto = LEVELS[this.currentLevelIndex];
+    this.levelTitleEl.textContent = proto.name;
+    this.movesValEl.textContent = this.state.movesLeft;
+    this.coresValEl.textContent = `${this.state.coresCollected}/${this.state.totalCores}`;
+
+    if (this.state.movesLeft <= 3) {
+      this.movesBadgeEl.classList.add('low');
+    } else {
+      this.movesBadgeEl.classList.remove('low');
+    }
+
+    this.breakBadge.textContent = this.state.skills.break;
+    this.jumpBadge.textContent = this.state.skills.jump;
+    this.undoBadge.textContent = this.state.skills.undo;
+
+    this.breakBtn.disabled = this.state.skills.break <= 0 || this.isOver;
+    this.jumpBtn.disabled = this.state.skills.jump <= 0 || this.isOver;
+    this.undoBtn.disabled = this.state.skills.undo <= 0 || this.history.length === 0 || this.isOver;
+  }
+
+  resizeCanvas() {
+    if (!this.state) return;
+    const wrapW = this.wrapper.clientWidth - 20;
+    const wrapH = this.wrapper.clientHeight - 40;
+
+    const tileW = Math.floor(wrapW / this.state.width);
+    const tileH = Math.floor(wrapH / this.state.height);
+    const size = Math.max(34, Math.min(tileW, tileH, 60));
+
+    this.tileSize = size;
+    const displayW = size * this.state.width;
+    const displayH = size * this.state.height;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2); // Cap at 2 for performance
+    this.canvas.width = displayW * dpr;
+    this.canvas.height = displayH * dpr;
+    this.canvas.style.width = displayW + 'px';
+    this.canvas.style.height = displayH + 'px';
+
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  move(dx, dy) {
+    if (this.isOver) return;
+    sounds.init();
+
+    if (dx === 1) this.state.player.dir = 'right';
+    if (dx === -1) this.state.player.dir = 'left';
+    if (dy === 1) this.state.player.dir = 'down';
+    if (dy === -1) this.state.player.dir = 'up';
+
+    const targetX = this.state.player.x + dx;
+    const targetY = this.state.player.y + dy;
+
+    if (targetX < 0 || targetX >= this.state.width || targetY < 0 || targetY >= this.state.height) {
+      return;
+    }
+
+    const tile = this.state.grid[targetY][targetX];
+
+    // Solid Wall Check
+    if (tile === TILE.WALL) {
+      this.createSparks(targetX, targetY, '#64748b', 4);
+      return;
+    }
+
+    // Pushable Block Interaction
+    if (tile === TILE.BLOCK) {
+      const blockNextX = targetX + dx;
+      const blockNextY = targetY + dy;
+
+      if (blockNextX < 0 || blockNextX >= this.state.width || blockNextY < 0 || blockNextY >= this.state.height) {
+        return;
+      }
+
+      const nextTile = this.state.grid[blockNextY][blockNextX];
+      if (nextTile === TILE.EMPTY) {
+        this.saveSnapshot();
+        this.state.grid[blockNextY][blockNextX] = TILE.BLOCK;
+        this.state.grid[targetY][targetX] = TILE.EMPTY;
+        this.stepInto(targetX, targetY);
+        sounds.push();
+        this.createSparks(blockNextX, blockNextY, '#00f0ff', 6);
+        return;
+      } else if (nextTile === TILE.TRAP) {
+        this.saveSnapshot();
+        this.state.grid[blockNextY][blockNextX] = TILE.DISARMED_TRAP;
+        this.state.grid[targetY][targetX] = TILE.EMPTY;
+        this.stepInto(targetX, targetY);
+        sounds.push();
+        this.showToast("Khối đá đã vô hiệu hóa bẫy!", 1200);
+        this.createSparks(blockNextX, blockNextY, '#fbbf24', 12);
+        return;
+      } else {
+        return;
+      }
+    }
+
+    // Normal move into tile
+    this.saveSnapshot();
+    this.stepInto(targetX, targetY);
+  }
+
+  stepInto(targetX, targetY) {
+    this.state.player.x = targetX;
+    this.state.player.y = targetY;
+    this.state.movesLeft--;
+
+    const cell = this.state.grid[targetY][targetX];
+
+    if (cell === TILE.CORE) {
+      this.state.coresCollected++;
+      this.state.grid[targetY][targetX] = TILE.EMPTY;
+      sounds.collect();
+      this.createSparks(targetX, targetY, '#38bdf8', 14);
+      if (this.state.coresCollected >= this.state.totalCores) {
+        this.showToast("Đủ lõi! Cổng dịch chuyển đã mở!", 1500);
+      }
+    } else {
+      sounds.step();
+    }
+
+    this.updateHUD();
+
+    if (cell === TILE.TRAP) {
+      sounds.lose();
+      this.createSparks(targetX, targetY, '#f43f5e', 20);
+      this.triggerGameOver("Bẫy gai đã kích hoạt! Bạn bị tiêu diệt.");
+      return;
+    }
+
+    if (cell === TILE.PORTAL) {
+      if (this.state.coresCollected >= this.state.totalCores) {
+        sounds.win();
+        this.triggerVictory();
+        return;
+      } else {
+        this.showToast(`Cần thêm ${this.state.totalCores - this.state.coresCollected} lõi để kích hoạt cổng!`, 1200);
+      }
+    }
+
+    if (this.state.movesLeft <= 0 && !this.isOver) {
+      sounds.lose();
+      this.triggerGameOver("Hết bước di chuyển! Nguồn năng lượng đã cạn.");
+    }
+  }
+
+  useBreakSkill() {
+    if (this.isOver || this.state.skills.break <= 0) return;
+    sounds.init();
+
+    const dirMap = {
+      up: { dx: 0, dy: -1 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 },
+      right: { dx: 1, dy: 0 }
+    };
+    const delta = dirMap[this.state.player.dir];
+    const targetX = this.state.player.x + delta.dx;
+    const targetY = this.state.player.y + delta.dy;
+
+    if (targetX < 0 || targetX >= this.state.width || targetY < 0 || targetY >= this.state.height) {
+      this.showToast("Không có vật cản hợp lệ phía trước!", 1000);
+      return;
+    }
+
+    const tile = this.state.grid[targetY][targetX];
+    if (tile === TILE.BLOCK) {
+      this.saveSnapshot();
+      this.state.grid[targetY][targetX] = TILE.EMPTY;
+      this.state.skills.break--;
+      sounds.breakRock();
+      this.createSparks(targetX, targetY, '#fbbf24', 18);
+      this.showToast("Đã phá hủy khối đá!", 1000);
+      this.updateHUD();
+    } else {
+      this.showToast("Chỉ có thể phá hủy Khối Đá trước mặt!", 1000);
+    }
+  }
+
+  useJumpSkill() {
+    if (this.isOver || this.state.skills.jump <= 0) return;
+    sounds.init();
+
+    const dirMap = {
+      up: { dx: 0, dy: -1 },
+      down: { dx: 0, dy: 1 },
+      left: { dx: -1, dy: 0 },
+      right: { dx: 1, dy: 0 }
+    };
+    const delta = dirMap[this.state.player.dir];
+    const landX = this.state.player.x + delta.dx * 2;
+    const landY = this.state.player.y + delta.dy * 2;
+
+    if (landX < 0 || landX >= this.state.width || landY < 0 || landY >= this.state.height) {
+      this.showToast("Vùng đáp vượt khỏi bản đồ!", 1000);
+      return;
+    }
+
+    const landTile = this.state.grid[landY][landX];
+    if (landTile === TILE.WALL || landTile === TILE.BLOCK) {
+      this.showToast("Ô tiếp đất bị chặn bởi vật cản!", 1000);
+      return;
+    }
+
+    this.saveSnapshot();
+    this.state.skills.jump--;
+    sounds.jump();
+    this.createSparks(this.state.player.x, this.state.player.y, '#a855f7', 10);
+    this.stepInto(landX, landY);
+    this.createSparks(landX, landY, '#a855f7', 12);
+    this.showToast("Nhảy vọt lượng tử thành công!", 1000);
+  }
+
+  useUndoSkill() {
+    if (this.isOver || this.state.skills.undo <= 0 || this.history.length === 0) return;
+    sounds.init();
+
+    const snap = this.history.pop();
+    this.state.grid = snap.grid;
+    this.state.player.x = snap.player.x;
+    this.state.player.y = snap.player.y;
+    this.state.player.dir = snap.player.dir;
+    this.state.player.visualX = snap.player.x;
+    this.state.player.visualY = snap.player.y;
+    this.state.movesLeft = snap.movesLeft;
+    this.state.coresCollected = snap.coresCollected;
+    this.state.skills.undo--;
+
+    sounds.undo();
+    this.createSparks(this.state.player.x, this.state.player.y, '#38bdf8', 10);
+    this.showToast("Đã quay lại 1 bước!", 900);
+    this.updateHUD();
+  }
+
+  createSparks(gridX, gridY, color, count = 8) {
+    const cx = (gridX + 0.5) * this.tileSize;
+    const cy = (gridY + 0.5) * this.tileSize;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.2 + Math.random() * 2.8;
+      this.particles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 1.0,
+        decay: 0.03 + Math.random() * 0.04,
+        size: 1.8 + Math.random() * 2.5,
+        color: color
+      });
+    }
+  }
+
+  triggerVictory() {
+    this.isOver = true;
+    for (let i = 0; i < 3; i++) {
+      this.createSparks(this.state.player.x, this.state.player.y, '#00f0ff', 12);
+    }
+    this.modalTitle.textContent = "CHIẾN THẮNG!";
+    this.modalTitle.className = "modal-title win";
+    const bonus = this.state.movesLeft;
+    this.modalDesc.textContent = `Tuyệt vời! Bạn hoàn thành màn chơi với ${bonus} bước còn thừa.`;
+
+    if (this.currentLevelIndex < LEVELS.length - 1) {
+      this.modalPrimaryBtn.textContent = "Màn Tiếp Theo";
+      this.modalPrimaryBtn.onclick = () => this.loadLevel(this.currentLevelIndex + 1);
+    } else {
+      this.modalPrimaryBtn.textContent = "Hoàn Thành Toàn Bộ Game!";
+      this.modalPrimaryBtn.onclick = () => this.loadLevel(0);
+    }
+    this.modalSecondaryBtn.textContent = "Chơi Lại Màn Này";
+    this.modalSecondaryBtn.onclick = () => this.loadLevel(this.currentLevelIndex);
+    this.showModal();
+  }
+
+  triggerGameOver(reason) {
+    this.isOver = true;
+    this.modalTitle.textContent = "THẤT BẠI!";
+    this.modalTitle.className = "modal-title lose";
+    this.modalDesc.textContent = reason;
+    this.modalPrimaryBtn.textContent = "Thử Lại";
+    this.modalPrimaryBtn.onclick = () => this.loadLevel(this.currentLevelIndex);
+    this.modalSecondaryBtn.textContent = "Về Màn 1";
+    this.modalSecondaryBtn.onclick = () => this.loadLevel(0);
+    this.showModal();
+  }
+
+  showModal() { this.modal.classList.add('active'); }
+  hideModal() { this.modal.classList.remove('active'); }
+
+  initEvents() {
+    window.addEventListener('resize', () => this.resizeCanvas());
+
+    // Keyboard support - Zero throttle, handles quick consecutive taps & Telex
+    window.addEventListener('keydown', (e) => {
+      if (this.isOver) return;
+      sounds.init();
+
+      const code = e.code;
+      const key = e.key;
+
+      if (code === 'ArrowUp' || code === 'KeyW' || key === 'ArrowUp' || key === 'w' || key === 'W') {
+        e.preventDefault();
+        this.move(0, -1);
+      } else if (code === 'ArrowDown' || code === 'KeyS' || key === 'ArrowDown' || key === 's' || key === 'S') {
+        e.preventDefault();
+        this.move(0, 1);
+      } else if (code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A') {
+        e.preventDefault();
+        this.move(-1, 0);
+      } else if (code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D') {
+        e.preventDefault();
+        this.move(1, 0);
+      } else if (code === 'Digit1' || key === '1') {
+        this.useBreakSkill();
+      } else if (code === 'Digit2' || key === '2') {
+        this.useJumpSkill();
+      } else if (code === 'Digit3' || code === 'KeyZ' || key === '3' || key === 'z' || key === 'Z') {
+        this.useUndoSkill();
+      } else if (code === 'KeyR' || key === 'r' || key === 'R') {
+        this.loadLevel(this.currentLevelIndex);
+      }
+    });
+
+    // CLICK ON CANVAS TO MOVE
+    this.canvas.addEventListener('pointerdown', (e) => {
+      if (this.isOver || !this.state) return;
+      sounds.init();
+      this.canvas.focus();
+
+      const rect = this.canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const targetX = Math.floor(clickX / this.tileSize);
+      const targetY = Math.floor(clickY / this.tileSize);
+
+      const px = this.state.player.x;
+      const py = this.state.player.y;
+      const dx = targetX - px;
+      const dy = targetY - py;
+
+      if (Math.abs(dx) + Math.abs(dy) === 1) {
+        this.move(dx, dy);
+      } else if (Math.abs(dx) > Math.abs(dy) && dx !== 0) {
+        this.move(dx > 0 ? 1 : -1, 0);
+      } else if (dy !== 0) {
+        this.move(0, dy > 0 ? 1 : -1);
+      }
+    });
+
+    // Touch Swipe on Canvas
+    let touchStartX = 0;
+    let touchStartY = 0;
+    this.canvas.addEventListener('touchstart', (e) => {
+      sounds.init();
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    this.canvas.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = e.changedTouches[0].clientY - touchStartY;
+        const threshold = 18;
+
+        if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) > threshold) {
+          if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            this.move(deltaX > 0 ? 1 : -1, 0);
+          } else {
+            this.move(0, deltaY > 0 ? 1 : -1);
+          }
+        }
+      }
+    }, { passive: true });
+
+    // Header buttons
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      sounds.init();
+      this.loadLevel(this.currentLevelIndex);
+    });
+
+    this.breakBtn.addEventListener('click', () => this.useBreakSkill());
+    this.jumpBtn.addEventListener('click', () => this.useJumpSkill());
+    this.undoBtn.addEventListener('click', () => this.useUndoSkill());
+
+    // D-Pad: Pure pointerdown with ZERO debounce/throttle lock!
+    // Every consecutive tap triggers immediately without freeze!
+    const bindDpad = (id, dx, dy) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        sounds.init();
+        this.move(dx, dy);
+      });
+    };
+
+    bindDpad('dpad-up', 0, -1);
+    bindDpad('dpad-down', 0, 1);
+    bindDpad('dpad-left', -1, 0);
+    bindDpad('dpad-right', 1, 0);
+  }
+
+  loop(timestamp) {
+    const dt = Math.min((timestamp - this.lastFrame) / 1000, 0.1);
+    this.lastFrame = timestamp;
+    this.animTime += dt;
+
+    // Smooth visual interpolation for player movement (Zero jerkiness)
+    if (this.state && this.state.player) {
+      const p = this.state.player;
+      const lerpSpeed = 24; // Smooth snappy glide
+      const factor = 1 - Math.exp(-lerpSpeed * dt);
+      p.visualX += (p.x - p.visualX) * factor;
+      p.visualY += (p.y - p.visualY) * factor;
+
+      if (Math.abs(p.visualX - p.x) < 0.005) p.visualX = p.x;
+      if (Math.abs(p.visualY - p.y) < 0.005) p.visualY = p.y;
+    }
+
+    this.render();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
+  render() {
+    if (!this.state) return;
+    const ctx = this.ctx;
+    const ts = this.tileSize;
+    const w = this.state.width;
+    const h = this.state.height;
+
+    ctx.clearRect(0, 0, w * ts, h * ts);
+
+    // Floor & Grid
+    for (let r = 0; r < h; r++) {
+      for (let c = 0; c < w; c++) {
+        const x = c * ts;
+        const y = r * ts;
+        const tile = this.state.grid[r][c];
+
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#0f172a' : '#111c33';
+        ctx.fillRect(x, y, ts, ts);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, ts, ts);
+
+        if (tile === TILE.WALL) {
+          this.drawWall(ctx, x, y, ts);
+        } else if (tile === TILE.TRAP) {
+          this.drawTrap(ctx, x, y, ts);
+        } else if (tile === TILE.DISARMED_TRAP) {
+          this.drawDisarmedTrap(ctx, x, y, ts);
+        } else if (tile === TILE.PORTAL) {
+          this.drawPortal(ctx, x, y, ts);
+        } else if (tile === TILE.CORE) {
+          this.drawCore(ctx, x, y, ts);
+        } else if (tile === TILE.BLOCK) {
+          this.drawBlock(ctx, x, y, ts);
+        }
+      }
+    }
+
+    // Draw Smooth Player
+    this.drawPlayer(ctx, this.state.player.visualX * ts, this.state.player.visualY * ts, ts);
+
+    // Draw Particles
+    this.updateAndDrawParticles(ctx);
+  }
+
+  drawWall(ctx, x, y, ts) {
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(x + 2, y + 2, ts - 4, ts - 4);
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 2, y + 2, ts - 4, ts - 4);
+
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.12)';
+    ctx.beginPath();
+    ctx.moveTo(x + 6, y + 6);
+    ctx.lineTo(x + ts - 6, y + ts - 6);
+    ctx.stroke();
+  }
+
+  drawTrap(ctx, x, y, ts) {
+    const pulse = Math.sin(this.animTime * 6) * 0.2 + 0.8;
+    ctx.fillStyle = `rgba(244, 63, 94, ${0.15 * pulse})`;
+    ctx.fillRect(x + 2, y + 2, ts - 4, ts - 4);
+
+    ctx.strokeStyle = `rgba(244, 63, 94, ${0.8 * pulse})`;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 3, y + 3, ts - 6, ts - 6);
+
+    ctx.fillStyle = '#f43f5e';
+    const cx = x + ts / 2;
+    const cy = y + ts / 2;
+    const size = ts * 0.24;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - size);
+    ctx.lineTo(cx + size * 0.7, cy);
+    ctx.lineTo(cx, cy + size);
+    ctx.lineTo(cx - size * 0.7, cy);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  drawDisarmedTrap(ctx, x, y, ts) {
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(x + 2, y + 2, ts - 4, ts - 4);
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 3, y + 3, ts - 6, ts - 6);
+
+    ctx.strokeStyle = '#10b981';
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y + ts / 2);
+    ctx.lineTo(x + ts - 8, y + ts / 2);
+    ctx.stroke();
+  }
+
+  drawPortal(ctx, x, y, ts) {
+    const cx = x + ts / 2;
+    const cy = y + ts / 2;
+    const isReady = this.state.coresCollected >= this.state.totalCores;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(this.animTime * (isReady ? 2.5 : 0.8));
+
+    ctx.strokeStyle = isReady ? '#00f0ff' : '#f59e0b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, ts * 0.35, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = isReady ? '#38bdf8' : '#78350f';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(0, 0, ts * 0.22, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  drawCore(ctx, x, y, ts) {
+    const cx = x + ts / 2;
+    const cy = y + ts / 2 + Math.sin(this.animTime * 4) * 2.5;
+    const r = ts * 0.22;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(this.animTime * 1.5);
+
+    // High performance clean vector glow (No heavy shadowBlur)
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#00f0ff';
+    ctx.beginPath();
+    ctx.moveTo(0, -r);
+    ctx.lineTo(r, 0);
+    ctx.lineTo(0, r);
+    ctx.lineTo(-r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  drawBlock(ctx, x, y, ts) {
+    const pad = 4;
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(x + pad, y + pad, ts - pad * 2, ts - pad * 2);
+
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + pad, y + pad, ts - pad * 2, ts - pad * 2);
+
+    ctx.strokeStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.moveTo(x + pad + 4, y + pad + 4);
+    ctx.lineTo(x + ts - pad - 4, y + ts - pad - 4);
+    ctx.moveTo(x + ts - pad - 4, y + pad + 4);
+    ctx.lineTo(x + pad + 4, y + ts - pad - 4);
+    ctx.stroke();
+  }
+
+  drawPlayer(ctx, x, y, ts) {
+    const cx = x + ts / 2;
+    const cy = y + ts / 2;
+    const r = ts * 0.32;
+
+    ctx.save();
+
+    // Fast ambient glow
+    ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Robot body
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Robot Visor
+    ctx.fillStyle = '#00f0ff';
+    const offset = r * 0.45;
+    let eyeX = cx;
+    let eyeY = cy;
+
+    if (this.state.player.dir === 'right') eyeX += offset;
+    if (this.state.player.dir === 'left') eyeX -= offset;
+    if (this.state.player.dir === 'up') eyeY -= offset;
+    if (this.state.player.dir === 'down') eyeY += offset;
+
+    ctx.beginPath();
+    ctx.arc(eyeX, eyeY, r * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  updateAndDrawParticles(ctx) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= p.decay;
+
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+
+      ctx.save();
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  new Game();
+});
+</script>
+</body>
+</html>
