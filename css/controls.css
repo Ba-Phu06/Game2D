@@ -1,0 +1,107 @@
+footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  padding-top: 6px;
+  z-index: 10;
+  flex-wrap: wrap;
+}
+
+.skills-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-skill {
+  position: relative;
+  background: #1e293b;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.btn-skill:hover:not(:disabled) {
+  border-color: var(--accent-cyan);
+  background: #273549;
+}
+
+.btn-skill:active:not(:disabled) {
+  background: var(--accent-cyan);
+  color: #000;
+}
+
+.btn-skill:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: #334155;
+}
+
+.skill-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--accent-purple);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-dark);
+}
+
+.skill-hotkey {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+
+.dpad-container {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 3px;
+  justify-content: center;
+  align-items: center;
+}
+
+.dpad-btn {
+  background: #1e293b;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--text-main);
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.08s;
+}
+
+.dpad-btn:hover {
+  border-color: var(--accent-cyan);
+}
+
+.dpad-btn:active {
+  background: var(--accent-cyan);
+  color: #000;
+}
