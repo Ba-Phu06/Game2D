@@ -1,10 +1,10 @@
 /**
- * Canvas Rendering Engine
+ * Ultra-Fast Canvas Rendering Engine (60/120 FPS Optimized)
  */
 class GameRenderer {
   constructor(canvas, wrapper, gameState) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext('2d', { alpha: false });
     this.wrapper = wrapper;
     this.gameState = gameState;
     this.particles = [];
@@ -21,12 +21,12 @@ class GameRenderer {
   resize() {
     const state = this.gameState.state;
     if (!state) return;
-    const wrapW = this.wrapper.clientWidth - 20;
-    const wrapH = this.wrapper.clientHeight - 40;
+    const wrapW = this.wrapper.clientWidth - 16;
+    const wrapH = this.wrapper.clientHeight - 36;
 
     const tileW = Math.floor(wrapW / state.width);
     const tileH = Math.floor(wrapH / state.height);
-    this.tileSize = Math.max(32, Math.min(tileW, tileH, 56));
+    this.tileSize = Math.max(30, Math.min(tileW, tileH, 56));
 
     const displayW = this.tileSize * state.width;
     const displayH = this.tileSize * state.height;
@@ -40,34 +40,35 @@ class GameRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  addSparks(gridX, gridY, color, count = 8) {
+  addSparks(gridX, gridY, color, count = 6) {
     const cx = (gridX + 0.5) * this.tileSize;
     const cy = (gridY + 0.5) * this.tileSize;
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 1.2 + Math.random() * 2.8;
+      const speed = 1.2 + Math.random() * 2.4;
       this.particles.push({
         x: cx, y: cy,
         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        life: 1.0, decay: 0.03 + Math.random() * 0.04,
-        size: 1.8 + Math.random() * 2.5, color: color
+        life: 1.0, decay: 0.04 + Math.random() * 0.04,
+        size: 1.5 + Math.random() * 2, color: color
       });
     }
   }
 
   loop(timestamp) {
-    const dt = Math.min((timestamp - this.lastFrame) / 1000, 0.1);
+    const dt = Math.min((timestamp - this.lastFrame) / 1000, 0.05);
     this.lastFrame = timestamp;
     this.animTime += dt;
 
     const state = this.gameState.state;
     if (state && state.player) {
       const p = state.player;
-      const factor = 1 - Math.exp(-24 * dt);
+      // Snappy lerp (instant settling, 0 delay feeling)
+      const factor = 1 - Math.exp(-36 * dt);
       p.visualX += (p.x - p.visualX) * factor;
       p.visualY += (p.y - p.visualY) * factor;
-      if (Math.abs(p.visualX - p.x) < 0.005) p.visualX = p.x;
-      if (Math.abs(p.visualY - p.y) < 0.005) p.visualY = p.y;
+      if (Math.abs(p.visualX - p.x) < 0.003) p.visualX = p.x;
+      if (Math.abs(p.visualY - p.y) < 0.003) p.visualY = p.y;
     }
 
     this.render();
@@ -79,7 +80,9 @@ class GameRenderer {
     if (!state) return;
     const ctx = this.ctx;
     const ts = this.tileSize;
-    ctx.clearRect(0, 0, state.width * ts, state.height * ts);
+
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, state.width * ts, state.height * ts);
 
     for (let r = 0; r < state.height; r++) {
       for (let c = 0; c < state.width; c++) {
@@ -147,37 +150,25 @@ class GameRenderer {
     const cx = x + ts / 2;
     const cy = y + ts / 2;
     const isReady = state.coresCollected >= state.totalCores;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(this.animTime * (isReady ? 2.5 : 0.8));
     ctx.strokeStyle = isReady ? '#00f0ff' : '#f59e0b';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(0, 0, ts * 0.35, 0, Math.PI * 2);
+    ctx.arc(cx, cy, ts * 0.35, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
   }
 
   drawCore(ctx, x, y, ts) {
     const cx = x + ts / 2;
-    const cy = y + ts / 2 + Math.sin(this.animTime * 4) * 2.5;
+    const cy = y + ts / 2 + Math.sin(this.animTime * 4) * 2;
     const r = ts * 0.22;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(this.animTime * 1.5);
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 1.4, 0, Math.PI * 2);
-    ctx.fill();
     ctx.fillStyle = '#00f0ff';
     ctx.beginPath();
-    ctx.moveTo(0, -r);
-    ctx.lineTo(r, 0);
-    ctx.lineTo(0, r);
-    ctx.lineTo(-r, 0);
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r, cy);
+    ctx.lineTo(cx, cy + r);
+    ctx.lineTo(cx - r, cy);
     ctx.closePath();
     ctx.fill();
-    ctx.restore();
   }
 
   drawBlock(ctx, x, y, ts) {
@@ -193,11 +184,7 @@ class GameRenderer {
     const cx = x + ts / 2;
     const cy = y + ts / 2;
     const r = ts * 0.32;
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 1.25, 0, Math.PI * 2);
-    ctx.fill();
+
     ctx.fillStyle = '#f8fafc';
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -215,7 +202,6 @@ class GameRenderer {
     ctx.beginPath();
     ctx.arc(eyeX, eyeY, r * 0.35, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
   }
 
   drawParticles(ctx) {
@@ -228,13 +214,10 @@ class GameRenderer {
         this.particles.splice(i, 1);
         continue;
       }
-      ctx.save();
-      ctx.globalAlpha = p.life;
       ctx.fillStyle = p.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
   }
 }

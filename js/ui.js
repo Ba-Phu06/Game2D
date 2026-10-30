@@ -1,5 +1,5 @@
 /**
- * UI Controller: Modals, HUD, Input & Event Listeners
+ * UI Controller: HUD Updates & Modals
  */
 class UIController {
   constructor(gameState) {
@@ -28,7 +28,6 @@ class UIController {
     this.undoBadge = document.getElementById('undo-badge');
 
     this.toastEl = document.getElementById('toast-msg');
-    this.canvas = document.getElementById('game-canvas');
   }
 
   setupAuthSync() {
@@ -79,19 +78,67 @@ class UIController {
     if (target) target.classList.remove('active');
   }
 
+  bindEvents() {
+    this.gameState.on('update', () => this.updateHUD());
+    this.gameState.on('toast', (txt, dur) => this.showToast(txt, dur));
+
+    this.gameState.on('win', (levelId, movesLeft) => {
+      if (window.inputController) window.inputController.stopHold();
+      const res = window.rankSystem.recordLevelVictory(levelId, movesLeft);
+      document.getElementById('win-stars').textContent = '★'.repeat(res.stars) + '☆'.repeat(3 - res.stars);
+      document.getElementById('win-score-bonus').textContent = `+${res.score} Điểm Rank`;
+      const nextBtn = document.getElementById('win-next-btn');
+      if (this.gameState.currentLevelIndex < window.GAME_LEVELS.length - 1) {
+        nextBtn.textContent = 'Màn Tiếp Theo';
+        nextBtn.onclick = () => {
+          this.closeModal('win-modal');
+          this.gameState.loadLevel(this.gameState.currentLevelIndex + 1);
+          if (window.gameRenderer) window.gameRenderer.resize();
+        };
+      } else {
+        nextBtn.textContent = 'Hoàn Thành Game!';
+        nextBtn.onclick = () => {
+          this.closeModal('win-modal');
+          this.openLeaderboard();
+        };
+      }
+      this.openModal('win-modal');
+    });
+
+    this.gameState.on('gameOver', (reason) => {
+      if (window.inputController) window.inputController.stopHold();
+      document.getElementById('lose-reason').textContent = reason;
+      this.openModal('lose-modal');
+    });
+
+    document.getElementById('btn-levels').onclick = () => this.openLevelSelect();
+    document.getElementById('btn-rank').onclick = () => this.openLeaderboard();
+    this.userBadgeEl.onclick = () => this.openModal('auth-modal');
+    document.getElementById('btn-restart').onclick = () => {
+      window.sounds.init();
+      this.gameState.loadLevel(this.gameState.currentLevelIndex);
+    };
+
+    this.breakBtn.onclick = () => this.gameState.useBreakSkill();
+    this.jumpBtn.onclick = () => this.gameState.useJumpSkill();
+    this.undoBtn.onclick = () => this.gameState.useUndoSkill();
+
+    this.bindAuthModal();
+  }
+
   openLevelSelect() {
     const grid = document.getElementById('level-grid');
     grid.innerHTML = '';
     window.GAME_LEVELS.forEach((lvl, idx) => {
-      const isUnlocked = window.rankSystem.isLevelUnlocked(lvl.id);
+      const unlocked = window.rankSystem.isLevelUnlocked(lvl.id);
       const stars = window.rankSystem.getLevelStars(lvl.id);
       const card = document.createElement('div');
-      card.className = `level-card ${isUnlocked ? '' : 'locked'} ${idx === this.gameState.currentLevelIndex ? 'active' : ''}`;
+      card.className = `level-card ${unlocked ? '' : 'locked'} ${idx === this.gameState.currentLevelIndex ? 'active' : ''}`;
       card.innerHTML = `
-        <span class="level-num">${isUnlocked ? lvl.id : '🔒'}</span>
-        <span class="level-stars">${isUnlocked ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '---'}</span>
+        <span class="level-num">${unlocked ? lvl.id : '🔒'}</span>
+        <span class="level-stars">${unlocked ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '---'}</span>
       `;
-      if (isUnlocked) {
+      if (unlocked) {
         card.onclick = () => {
           this.closeModal('level-modal');
           this.gameState.loadLevel(idx);
@@ -119,11 +166,6 @@ class UIController {
     try {
       const data = await window.rankSystem.fetchLeaderboard();
       stateBox.style.display = 'none';
-      if (!data || data.length === 0) {
-        stateBox.innerHTML = '<span>Chưa có dữ liệu xếp hạng.</span>';
-        stateBox.style.display = 'block';
-        return;
-      }
       data.forEach((item) => {
         const row = document.createElement('div');
         row.className = `leaderboard-item ${item.isMe ? 'me' : ''}`;
@@ -137,109 +179,9 @@ class UIController {
         listEl.appendChild(row);
       });
     } catch (err) {
-      stateBox.innerHTML = `
-        <span style="color:var(--accent-danger)">${err.message}</span>
-        <button class="modal-btn secondary" style="margin-top:8px" onclick="window.uiController.openLeaderboard()">Thử lại</button>
-      `;
+      stateBox.innerHTML = `<span style="color:var(--accent-danger)">${err.message}</span>`;
       stateBox.style.display = 'block';
     }
-  }
-
-  bindEvents() {
-    this.gameState.on('update', () => this.updateHUD());
-    this.gameState.on('toast', (txt, dur) => this.showToast(txt, dur));
-
-    this.gameState.on('win', (levelId, movesLeft) => {
-      const result = window.rankSystem.recordLevelVictory(levelId, movesLeft);
-      document.getElementById('win-stars').textContent = '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars);
-      document.getElementById('win-score-bonus').textContent = `+${result.score} Điểm Rank`;
-      const nextBtn = document.getElementById('win-next-btn');
-      if (this.gameState.currentLevelIndex < window.GAME_LEVELS.length - 1) {
-        nextBtn.textContent = 'Màn Tiếp Theo';
-        nextBtn.onclick = () => {
-          this.closeModal('win-modal');
-          this.gameState.loadLevel(this.gameState.currentLevelIndex + 1);
-          if (window.gameRenderer) window.gameRenderer.resize();
-        };
-      } else {
-        nextBtn.textContent = 'Hoàn Thành Game!';
-        nextBtn.onclick = () => {
-          this.closeModal('win-modal');
-          this.openLeaderboard();
-        };
-      }
-      this.openModal('win-modal');
-    });
-
-    this.gameState.on('gameOver', (reason) => {
-      document.getElementById('lose-reason').textContent = reason;
-      this.openModal('lose-modal');
-    });
-
-    // Header buttons
-    document.getElementById('btn-levels').onclick = () => this.openLevelSelect();
-    document.getElementById('btn-rank').onclick = () => this.openLeaderboard();
-    this.userBadgeEl.onclick = () => this.openModal('auth-modal');
-    document.getElementById('btn-restart').onclick = () => {
-      window.sounds.init();
-      this.gameState.loadLevel(this.gameState.currentLevelIndex);
-    };
-
-    // Skills
-    this.breakBtn.onclick = () => this.gameState.useBreakSkill();
-    this.jumpBtn.onclick = () => this.gameState.useJumpSkill();
-    this.undoBtn.onclick = () => this.gameState.useUndoSkill();
-
-    // D-Pad
-    const bindDpad = (id, dx, dy) => {
-      document.getElementById(id).addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        this.gameState.move(dx, dy);
-      });
-    };
-    bindDpad('dpad-up', 0, -1);
-    bindDpad('dpad-down', 0, 1);
-    bindDpad('dpad-left', -1, 0);
-    bindDpad('dpad-right', 1, 0);
-
-    // Keyboard
-    window.addEventListener('keydown', (e) => {
-      const code = e.code;
-      const key = e.key;
-      if (code === 'ArrowUp' || code === 'KeyW' || key === 'ArrowUp' || key === 'w' || key === 'W') {
-        e.preventDefault();
-        this.gameState.move(0, -1);
-      } else if (code === 'ArrowDown' || code === 'KeyS' || key === 'ArrowDown' || key === 's' || key === 'S') {
-        e.preventDefault();
-        this.gameState.move(0, 1);
-      } else if (code === 'ArrowLeft' || code === 'KeyA' || key === 'ArrowLeft' || key === 'a' || key === 'A') {
-        e.preventDefault();
-        this.gameState.move(-1, 0);
-      } else if (code === 'ArrowRight' || code === 'KeyD' || key === 'ArrowRight' || key === 'd' || key === 'D') {
-        e.preventDefault();
-        this.gameState.move(1, 0);
-      } else if (code === 'Digit1' || key === '1') this.gameState.useBreakSkill();
-      else if (code === 'Digit2' || key === '2') this.gameState.useJumpSkill();
-      else if (code === 'Digit3' || code === 'KeyZ' || key === '3' || key === 'z' || key === 'Z') this.gameState.useUndoSkill();
-      else if (code === 'KeyR' || key === 'r' || key === 'R') this.gameState.loadLevel(this.gameState.currentLevelIndex);
-    });
-
-    // Canvas Tap
-    this.canvas.addEventListener('pointerdown', (e) => {
-      if (this.gameState.isOver || !this.gameState.state) return;
-      window.sounds.init();
-      const rect = this.canvas.getBoundingClientRect();
-      const ts = window.gameRenderer.tileSize;
-      const tx = Math.floor((e.clientX - rect.left) / ts);
-      const ty = Math.floor((e.clientY - rect.top) / ts);
-      const dx = tx - this.gameState.state.player.x;
-      const dy = ty - this.gameState.state.player.y;
-      if (Math.abs(dx) + Math.abs(dy) === 1) this.gameState.move(dx, dy);
-      else if (Math.abs(dx) > Math.abs(dy) && dx !== 0) this.gameState.move(dx > 0 ? 1 : -1, 0);
-      else if (dy !== 0) this.gameState.move(0, dy > 0 ? 1 : -1);
-    });
-
-    this.bindAuthModal();
   }
 
   bindAuthModal() {
@@ -248,17 +190,12 @@ class UIController {
 
     document.getElementById('auth-gmail-btn').onclick = async () => {
       const email = gmailInput.value.trim();
-      if (!email) {
-        alert('Vui lòng nhập địa chỉ Gmail của bạn.');
-        return;
-      }
+      if (!email) return alert('Vui lòng nhập địa chỉ Gmail của bạn.');
       try {
         await window.authSystem.signInWithGmail(email);
         this.closeModal('auth-modal');
         this.showToast(`Xin chào, ${window.authSystem.getUser().name}!`);
-      } catch (err) {
-        alert(err.message);
-      }
+      } catch (err) { alert(err.message); }
     };
 
     document.getElementById('auth-guest-btn').onclick = async () => {

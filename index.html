@@ -172,15 +172,18 @@
 <script src="js/ranking.js"></script>
 <script src="js/game-state.js"></script>
 <script src="js/renderer.js"></script>
+<script src="js/input.js"></script>
 <script src="js/ui.js"></script>
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   window.gameState.loadLevel(0);
+  const canvas = document.getElementById('game-canvas');
   window.gameRenderer = new window.GameRenderer(
-    document.getElementById('game-canvas'),
+    canvas,
     document.getElementById('canvas-wrapper'),
     window.gameState
   );
+  window.inputController = new window.InputController(window.gameState, canvas);
   window.uiController = new window.UIController(window.gameState);
 });
 </script>
